@@ -16,18 +16,18 @@ Main Server Session Handler Class
 class MUSessionHandler(asynchat.async_chat):
     def __init__(self, sock, callback):
         asynchat.async_chat.__init__(self, sock=sock, map=session_list)
-        
-        self.set_terminator('\r\n')
+
+        self.set_terminator(b'\r\n')
         self.buffer = []
         self.callback = callback
 
     def collect_incoming_data(self, data):
-        self.buffer.append(data)
+        self.buffer.append(data.decode('utf-8'))
 
     def found_terminator(self):
         data = ''.join(self.buffer)
         self.callback(data)
-        for handler in session_list.itervalues():
+        for handler in session_list.values():
             if hasattr(handler, 'push') and handler != self:
                 handler.push(data + '\r\n')
         self.buffer = []
@@ -52,20 +52,20 @@ class MUServer(asyncore.dispatcher):
         if pair is not None:
             sock, addr = pair
             handler = MUSessionHandler(sock, self.callback)
-            
+
             # Initialize remote client with current buffer
-            handler.push(json.dumps({
+            handler.push('{}\r\n'.format(json.dumps({
                 'body':list(vim.current.buffer)
-                })+'\r\n')
+                })).encode('utf-8'))
 
     def broadcast(self, msg):
-        for handler in session_list.itervalues():
+        for handler in session_list.values():
             if hasattr(handler, 'push'):
-                handler.push(msg)
+                handler.push('{}\r\n'.format(msg).encode('utf-8'))
 
     def send_message(self, msg):
         self.broadcast(json.dumps(msg)+'\r\n')
-        
+
 """
 Main Client Class
 
@@ -77,12 +77,12 @@ class MUClient(asynchat.async_chat):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connect((host, port))
 
-        self.set_terminator('\r\n')
+        self.set_terminator(b'\r\n')
         self.buffer = []
         self.callback = callback
 
     def collect_incoming_data(self, data):
-        self.buffer.append(data)
+        self.buffer.append(data.decode('utf-8'))
 
     def found_terminator(self):
         data = ''.join(self.buffer)
@@ -90,7 +90,7 @@ class MUClient(asynchat.async_chat):
         self.buffer = []
 
     def send_message(self, msg):
-        self.push(json.dumps(msg)+'\r\n')
+        self.push('{}\r\n'.format(json.dumps(msg)).encode('utf-8'))
 
     def handle_close(self):
         asynchat.async_chat.handle_close(self)

@@ -79,8 +79,8 @@ def parse_data(data):
         elif ('body' in recv_data):
             vim_list = recv_data[u'body']
             vim.current.buffer[:] = (
-                    [vim_list[i].encode('ascii', 'ignore') 
-                        for i in xrange(len(vim_list))])
+                    [vim_list[i].encode('ascii', 'ignore')
+                        for i in range(len(vim_list))])
 
         elif ('type' in recv_data):
             head = vim.current.buffer[:recv_data['start']]
@@ -95,7 +95,7 @@ def parse_data(data):
         vim.command(":redraw")
 
     # Bad data
-    except ValueError, e:
+    except ValueError as e:
         pass
 
 
@@ -106,29 +106,29 @@ multiuser_client_send:
     and then sends that data.
 
     Called on all key presses.
-    
+
 """
 def multiuser_client_send():
     global old_buffer
     global MUConnection
     global old_tick
-    
+
     if MUConnection == None:
         return
-    
+
     # Send cursor data
     update_cursor(*vim.current.window.cursor)
-            
+
     # Check if there are changes
     new_tick = int(vim.eval("b:changedtick"))
     if old_tick != new_tick:
         old_tick = new_tick
     else:
         return
-    
+
     # Get the current buffer
     current_buffer = list(vim.current.buffer)
-    
+
     run_diff(old_buffer, current_buffer)
     old_buffer = current_buffer
     return
